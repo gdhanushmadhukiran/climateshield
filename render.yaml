@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: climateshield
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./climateshield_dev.db
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: APP_ENV
+        value: production
