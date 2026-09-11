@@ -1,0 +1,76 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: climateshield-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: climateshield
+      POSTGRES_USER: climateshield
+      POSTGRES_PASSWORD: climateshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U climateshield -d climateshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climateshield-api
+    restart: unless-stopped
+    environment:
+      ENV: production
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://climateshield:climateshield@postgis:5432/climateshield
+      POSTGRES_HOST: postgis
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: climateshield
+      POSTGRES_USER: climateshield
+      POSTGRES_PASSWORD: climateshield
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.seed.demo_seed &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: climateshield-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climateshield-mqtt-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://climateshield:climateshield@postgis:5432/climateshield
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+    depends_on:
+      - postgis
+      - mosquitto
+    command: python -m app.worker.mqtt_consumer
+
+volumes:
+  postgis_data:
+  mosquitto_data:
+  mosquitto_log:
