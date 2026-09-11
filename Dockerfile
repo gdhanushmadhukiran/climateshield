@@ -12,16 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install Python requirements
-COPY shield-core-vis-main/shield-core-vis-main/backend/requirements.txt ./requirements.txt
+COPY shield-core-vis-main/backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Copy application source code, Alembic configurations, and ML models
-COPY shield-core-vis-main/shield-core-vis-main/backend/app/ ./app/
-COPY shield-core-vis-main/shield-core-vis-main/backend/ml_models/ ./ml_models/
-COPY shield-core-vis-main/shield-core-vis-main/backend/alembic/ ./alembic/
-COPY shield-core-vis-main/shield-core-vis-main/backend/alembic.ini ./alembic.ini
-COPY shield-core-vis-main/shield-core-vis-main/backend/.env.example ./.env
+COPY shield-core-vis-main/backend/app/ ./app/
+COPY shield-core-vis-main/backend/ml_models/ ./ml_models/
+COPY shield-core-vis-main/backend/alembic/ ./alembic/
+COPY shield-core-vis-main/backend/alembic.ini ./alembic.ini
 
 # Expose port (Render dynamically sets $PORT)
 ENV PORT=8000
